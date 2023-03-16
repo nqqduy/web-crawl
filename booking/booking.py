@@ -1,8 +1,11 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+import time
+from prettytable import PrettyTable
 
 import booking.constants as const
+from booking.booking_report import BookingReport
 
 class Booking(webdriver.Chrome): # extends webdriver.Chrome
     def __init__(self, isExit = False):
@@ -14,6 +17,7 @@ class Booking(webdriver.Chrome): # extends webdriver.Chrome
         super(Booking, self).__init__(options=options) # initialize instance webdriver.Chrome
 
         self.implicitly_wait(10)
+        self.maximize_window()
 
     def __exit__(self, exc_type, exc, traceback):
         if self.isExit:
@@ -37,3 +41,59 @@ class Booking(webdriver.Chrome): # extends webdriver.Chrome
             if currency in item.text:
                 item.click()
                 break
+    
+    def select_place_to_go(self, place_to_go):
+        search_field = self.find_element(By.CSS_SELECTOR, 'input[name="ss"]')
+        search_field.clear()
+        search_field.send_keys(place_to_go)
+
+        time.sleep(2)
+        first_search = self.find_element(By.XPATH, '//*[@id="indexsearch"]/div[2]/div/div/form/div[1]/div[1]/div/div/div[2]/ul/li[1]')
+        first_search.click()
+    
+    def select_dates(self, check_in_date, check_out_date):
+        check_in_element = self.find_element(By.CSS_SELECTOR, f'span[data-date="{check_in_date}"]')
+        check_in_element.click()
+
+        check_out_element = self.find_element(By.CSS_SELECTOR, f'span[data-date="{check_out_date}"]')
+        check_out_element.click()
+
+    def select_adults(self, count):
+        selection_element = self.find_element(By.CSS_SELECTOR, 'button[data-testid="occupancy-config"]')
+        selection_element.click()
+
+        while True:
+            decrease_adults_element = self.find_element(By.XPATH, '//*[@id="indexsearch"]/div[2]/div/div/form/div[1]/div[3]/div/div/div/div/div[1]/div[2]/button[1]')
+            decrease_adults_element.click() # decrease quantity for adult
+            
+            adults_value_element = self.find_element(By.ID, "group_adults")
+            adults_value = adults_value_element.get_attribute('value') # Should give back the adults count
+
+            if int(adults_value) == 1:
+                break
+        
+        increase_button_element = self.find_element(By.XPATH, '//*[@id="indexsearch"]/div[2]/div/div/form/div[1]/div[3]/div/div/div/div/div[1]/div[2]/button[2]')
+        
+        for _ in range(count -1): # 0 -> count - 1 time
+            increase_button_element.click()
+    
+    def click_search(self):
+        search_element = self.find_element(By.XPATH, '//*[@id="indexsearch"]/div[2]/div/div/form/div[1]/div[4]/button')
+        search_element.click()
+
+    def report_results(self):
+        hotel_cards = self.find_element(By.XPATH, '//*[@id="search_results_table"]/div[2]/div/div/div[3]')
+        # .find_elements(By.CSS_SELECTOR, 'div[data-testid="property-card"]')
+
+        report = BookingReport(hotel_cards)
+
+        result = report.pull_deal_card_attributes()
+
+        table = PrettyTable(
+            field_names=["Hotel Name", "Hotel Price", "Hotel Score"]
+        )
+        table.add_rows(result)
+
+        print(table)
+
+
