@@ -10,7 +10,7 @@ class BookingReport:
     def pull_deal_cards(self):
         return self.boxes_section_element.find_elements(By.CSS_SELECTOR, 'div[data-testid="property-card"]')
     
-    def pull_deal_card_attributes(self) -> str:
+    def pull_deal_card_attributes(self) -> list:
         collection = []
 
         for deal_card in self.deal_cards:

@@ -81,13 +81,25 @@ class Booking(webdriver.Chrome): # extends webdriver.Chrome
         search_element = self.find_element(By.XPATH, '//*[@id="indexsearch"]/div[2]/div/div/form/div[1]/div[4]/button')
         search_element.click()
 
+    def get_quantity_paging(self):
+        return self.find_element(By.CSS_SELECTOR, 'ol.a8b500abde li:last-child button').get_attribute('innerHTML').strip()
+
     def report_results(self):
-        hotel_cards = self.find_element(By.XPATH, '//*[@id="search_results_table"]/div[2]/div/div/div[3]')
-        # .find_elements(By.CSS_SELECTOR, 'div[data-testid="property-card"]')
+        hotel_cards = self.find_element(By.CLASS_NAME, 'd4924c9e74')
+        total_paging = int(self.get_quantity_paging())
 
-        report = BookingReport(hotel_cards)
+        result = []
+        for pag in range(total_paging):
+            if(not pag == 0):
+                next_page_element = self.find_element(By.CSS_SELECTOR, f"ol.a8b500abde li button[aria-label~='{pag+1}']")
+                next_page_element.click()
+                time.sleep(6)
+                hotel_cards = self.find_element(By.CLASS_NAME, 'd4924c9e74')
 
-        result = report.pull_deal_card_attributes()
+            report = BookingReport(hotel_cards)
+            result += report.pull_deal_card_attributes()
+
+            del report
 
         table = PrettyTable(
             field_names=["Hotel Name", "Hotel Price", "Hotel Score"]
